@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Real-time Chat</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        .chat-box {
+            height: 400px;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-time Chat Application</h1>
+        <div class="chat-box border rounded p-3" id="chat-box">
+            <!-- Chat messages will appear here -->
+        </div>
+        <div class="mt-3">
+            <input type="text" id="sender" placeholder="Your Name" class="form-control mb-2" />
+            <input type="text" id="message" placeholder="Enter message" class="form-control mb-2" />
+            <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+
+    <script>
+        let stompClient = null;
+
+        function connect() {
+            const socket = new SockJS('/chat-websocket');
+            stompClient = Stomp.over(socket);
+            stompClient.connect({}, function (frame) {
+                console.log('Connected: ' + frame);
+                stompClient.subscribe('/topic/messages', function (message) {
+                    showMessage(JSON.parse(message.body));
+                });
+            });
+        }
+
+        function sendMessage() {
+            const sender = document.getElementById('sender').value;
+            const content = document.getElementById('message').value;
+            stompClient.send("/app/chat", {}, JSON.stringify({'sender': sender, 'content': content}));
+        }
+
+        function showMessage(message) {
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += '<div><strong>' + message.sender + ':</strong> ' + message.content + ' <small>(' + message.timestamp + ')</small></div>';
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        connect();
+    </script>
+</body>
+</html>
